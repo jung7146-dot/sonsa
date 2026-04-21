@@ -592,13 +592,22 @@ document.getElementById('file-inp').addEventListener('change',e=>{
 });
 
 document.getElementById('btn-import').addEventListener('click',async()=>{
-  const deckName=document.getElementById('deck-name-inp').value.trim();
-  if(!deckName){toast('덱 이름을 입력하세요');return}
+  let deckName=document.getElementById('deck-name-inp').value.trim();
   if(!S.apiKey){document.getElementById('api-modal').classList.add('show');return}
   const activeItab=document.querySelector('.itab.active').dataset.itab;
-  if(activeItab==='csv'){const csv=document.getElementById('csv-area').value.trim();if(!csv){toast('CSV를 입력하세요');return}await importCSV(csv,deckName);return}
-  const content=activeItab==='html'?document.getElementById('html-area').value.trim():document.getElementById('text-area').value.trim();
+  const content=activeItab==='html'?document.getElementById('html-area').value.trim()
+    :activeItab==='csv'?document.getElementById('csv-area').value.trim()
+    :document.getElementById('text-area').value.trim();
   if(!content){toast('내용을 입력하세요');return}
+  if(!deckName){
+    const parser=new DOMParser();
+    const d=parser.parseFromString(content,'text/html');
+    const h=d.querySelector('h1,h2,h3,h4,h5,h6');
+    deckName=h?h.textContent.trim():'';
+    if(!deckName){toast('덱 이름을 입력하거나 h태그가 있는 HTML을 넣어주세요');return}
+    document.getElementById('deck-name-inp').value=deckName;
+  }
+  if(activeItab==='csv'){await importCSV(content,deckName);return}
   await importWithAI(content,deckName);
 });
 
