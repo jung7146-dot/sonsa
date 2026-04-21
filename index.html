@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>의학 플래시카드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--bg:#f5f0e8;--surface:#fffdf7;--surface2:#f0ebe0;--border:#d4c9b0;--text:#2a2318;--text2:#6b5e48;--accent:#8b3a2a;--accent2:#2a5c8b;--success:#2d6a4f;--warn:#b5541a;--danger:#8b1a1a;--tag:#e8dfc8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Serif KR',serif;background:var(--bg);color:var(--text);min-height:100vh}
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+#setup-screen{align-items:center;justify-content:center;padding:2rem}
+.setup-box{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2.5rem;width:100%;max-width:460px;box-shadow:0 2px 20px rgba(42,35,24,.08)}
+.setup-box h1{font-size:1.4rem;font-weight:700;color:var(--accent);margin-bottom:.2rem}
+.setup-sub{font-size:.78rem;color:var(--text2);margin-bottom:1.8rem;font-family:'JetBrains Mono',monospace}
+.lbl{display:block;font-size:.73rem;font-weight:500;color:var(--text2);margin-bottom:.4rem;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.inp{width:100%;padding:.7rem .9rem;border:1px solid var(--border);border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:.82rem;background:var(--bg);color:var(--text)}
+.inp:focus{outline:none;border-color:var(--accent)}
+.fg{margin-bottom:1.2rem}
+.note{margin-top:1rem;font-size:.7rem;color:var(--text2);font-family:'JetBrains Mono',monospace;line-height:1.7}
+.note a{color:var(--accent2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.7rem 1.4rem;border:none;border-radius:3px;font-family:'Noto Serif KR',serif;font-size:.88rem;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:#a0452f}
+.btn-s{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-g{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-g:hover{background:var(--surface2)}
+.btn-w{width:100%}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar-title{font-size:1rem;font-weight:700;color:var(--accent)}
+.topbar-actions{display:flex;gap:.5rem}
+.topbar-actions .btn{padding:.4rem .8rem;font-size:.76rem}
+.stats-bar{display:flex;gap:1px;background:var(--border)}
+.stat-item{flex:1;background:var(--surface);padding:.7rem;text-align:center}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:500;color:var(--accent);display:block}
+.stat-label{font-size:.65rem;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.main-content{flex:1;padding:1.5rem;overflow-y:auto}
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:1.5rem}
+.tab{padding:.6rem 1.2rem;font-size:.82rem;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'JetBrains Mono',monospace;transition:all .2s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.tab-content{display:none}.tab-content.active{display:block}
+.deck-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:1rem}
+.deck-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.2rem;cursor:pointer;transition:all .2s}
+.deck-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(42,35,24,.1)}
+.deck-card h3{font-size:.88rem;font-weight:600;margin-bottom:.4rem}
+.deck-meta{font-size:.7rem;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.deck-due{display:inline-block;margin-top:.5rem;padding:.2rem .5rem;background:var(--accent);color:#fff;border-radius:2px;font-size:.68rem;font-family:'JetBrains Mono',monospace}
+.deck-due.zero{background:var(--success)}
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--text2);font-size:.88rem;line-height:1.8}
+.import-panel{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.5rem}
+.import-panel h3{font-size:.82rem;margin-bottom:1rem;color:var(--text2);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.itabs{display:flex;gap:.5rem;margin-bottom:1rem}
+.itab{padding:.35rem .75rem;border-radius:2px;font-size:.76rem;cursor:pointer;border:1px solid var(--border);font-family:'JetBrains Mono',monospace;background:var(--bg);color:var(--text2);transition:all .2s}
+.itab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.file-drop{border:2px dashed var(--border);border-radius:4px;padding:1.5rem;text-align:center;cursor:pointer;color:var(--text2);font-size:.82rem;transition:all .2s}
+.file-drop:hover,.file-drop.dragover{border-color:var(--accent);background:rgba(139,58,42,.03)}
+.file-drop input{display:none}
+.drop-sub{font-size:.7rem;margin-top:.3rem;color:var(--text2)}
+.ta{width:100%;margin-top:.8rem;height:140px;padding:.8rem;border:1px solid var(--border);border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:.78rem;background:var(--bg);color:var(--text);resize:vertical}
+.ta:focus{outline:none;border-color:var(--accent)}
+.import-footer{display:flex;gap:.5rem;margin-top:1rem;align-items:center}
+.dn-inp{flex:1;padding:.6rem .8rem;border:1px solid var(--border);border-radius:3px;font-family:'Noto Serif KR',serif;font-size:.82rem;background:var(--bg);color:var(--text)}
+.dn-inp:focus{outline:none;border-color:var(--accent)}
+.processing{display:none;align-items:center;gap:.5rem;margin-top:.7rem;font-size:.78rem;color:var(--accent2);font-family:'JetBrains Mono',monospace}
+.processing.show{display:flex}
+.search-bar{margin-bottom:1rem}
+.search-bar input{width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:3px;font-family:'Noto Serif KR',serif;font-size:.84rem;background:var(--bg);color:var(--text)}
+.search-bar input:focus{outline:none;border-color:var(--accent)}
+.card-list{display:flex;flex-direction:column;gap:.5rem}
+.card-item{background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:.8rem 1rem;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
+.card-item-q{font-size:.84rem;flex:1;line-height:1.5}
+.card-item-meta{font-size:.68rem;color:var(--text2);font-family:'JetBrains Mono',monospace;white-space:nowrap;text-align:right}
+.card-item-meta span{display:block}
+.study-header{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.2rem;background:var(--surface);border-bottom:1px solid var(--border)}
+.study-title{font-size:.88rem;font-weight:600}
+.progress-text{font-size:.76rem;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.prog-wrap{height:3px;background:var(--border)}
+.prog-fill{height:100%;background:var(--accent);transition:width .4s}
+.study-body{flex:1;padding:1.2rem;max-width:720px;margin:0 auto;width:100%;overflow-y:auto}
+.card-box{background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:1rem;box-shadow:0 2px 16px rgba(42,35,24,.07)}
+.card-metabar{padding:.55rem 1.2rem;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-ch{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text2)}
+.card-st{font-family:'JetBrains Mono',monospace;font-size:.66rem;padding:.15rem .4rem;border-radius:2px;background:var(--tag);color:var(--text2)}
+.card-q{padding:1.4rem 1.4rem 1rem;font-size:1rem;font-weight:500;line-height:1.75}
+.ans-wrap{padding:0 1.4rem 1.4rem}
+.ans-ta{width:100%;min-height:110px;padding:.85rem;border:1px solid var(--border);border-radius:3px;font-family:'Noto Serif KR',serif;font-size:.88rem;background:var(--bg);color:var(--text);resize:vertical;line-height:1.7;transition:border-color .2s}
+.ans-ta:focus{outline:none;border-color:var(--accent2)}
+.submit-row{display:flex;justify-content:flex-end;margin-top:.7rem;gap:.5rem;align-items:center}
+.hint{font-size:.72rem;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.ai-load{display:none;align-items:center;gap:.8rem;padding:1rem 1.4rem;font-size:.82rem;color:var(--accent2);font-family:'JetBrains Mono',monospace;background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:1rem}
+.ai-load.show{display:flex}
+.fb-box{display:none;background:var(--surface);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:1rem}
+.fb-box.show{display:block}
+.fb-header{padding:.65rem 1.2rem;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.fb-header span{font-family:'JetBrains Mono',monospace;font-size:.73rem;color:var(--text2)}
+.score-badge{font-family:'JetBrains Mono',monospace;font-size:.86rem;font-weight:500;padding:.18rem .55rem;border-radius:2px}
+.s-hi{background:rgba(45,106,79,.12);color:var(--success)}.s-mid{background:rgba(181,84,26,.12);color:var(--warn)}.s-lo{background:rgba(139,26,26,.12);color:var(--danger)}
+.fb-body{padding:1.1rem 1.4rem}
+.fb-body h4{font-size:.74rem;font-family:'JetBrains Mono',monospace;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:.8rem 0 .4rem}
+.fb-body h4:first-child{margin-top:0}
+.fb-body p,.fb-body li{font-size:.85rem;line-height:1.7}
+.fb-body ul{padding-left:1.2rem}
+.fb-body li{margin-bottom:.15rem}
+.c-ok{color:var(--success)}.c-miss{color:var(--warn)}.c-wrong{color:var(--danger)}
+.model-box{margin-top:.8rem;padding:.9rem 1rem;background:var(--bg);border-left:3px solid var(--accent2);border-radius:2px}
+.model-box h4{color:var(--accent2)!important;margin-top:0!important}
+.model-box p,.model-box li{font-size:.8rem!important}
+.rating-wrap{display:none;flex-direction:column;gap:.7rem}
+.rating-wrap.show{display:flex}
+.rating-label{font-size:.76rem;color:var(--text2);font-family:'JetBrains Mono',monospace;text-align:center}
+.rating-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem}
+.rating-btn{padding:.65rem .3rem;border:1px solid var(--border);border-radius:3px;cursor:pointer;background:var(--surface);text-align:center;transition:all .2s}
+.rating-btn:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(42,35,24,.1)}
+.rn{font-weight:600;display:block;font-size:.84rem;font-family:'Noto Serif KR',serif}
+.ri{font-size:.66rem;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:.15rem;display:block}
+.r-again{border-color:var(--danger)}.r-hard{border-color:var(--warn)}.r-good{border-color:var(--accent2)}.r-easy{border-color:var(--success)}
+#complete-screen{align-items:center;justify-content:center;padding:2rem}
+.complete-box{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2.5rem;width:100%;max-width:400px;text-align:center}
+.complete-box h2{font-size:1.3rem;color:var(--accent);margin-bottom:.5rem}
+.complete-box p{font-size:.84rem;color:var(--text2);margin-bottom:1.5rem}
+.c-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:1.5rem}
+.cstat{background:var(--surface);padding:1rem}
+.cstat .n{font-family:'JetBrains Mono',monospace;font-size:1.5rem;font-weight:500;display:block;color:var(--accent)}
+.cstat .l{font-size:.7rem;color:var(--text2);font-family:'JetBrains Mono',monospace}
+.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--text);color:var(--bg);padding:.7rem 1.2rem;border-radius:3px;font-size:.8rem;font-family:'JetBrains Mono',monospace;opacity:0;transform:translateY(8px);transition:all .3s;z-index:999;pointer-events:none;max-width:280px}
+.toast.show{opacity:1;transform:translateY(0)}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--border);display:inline-block;margin-right:.4rem}
+.sync-dot.syncing{background:var(--accent2);animation:pulse 1s infinite}
+.sync-dot.ok{background:var(--success)}.sync-dot.err{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(42,35,24,.5);z-index:100;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2rem;width:100%;max-width:400px}
+.modal-box h3{font-size:1rem;margin-bottom:.5rem}
+.modal-box p{font-size:.8rem;color:var(--text2);margin-bottom:1.2rem;line-height:1.6}
+.modal-actions{display:flex;gap:.5rem;margin-top:1rem}
+@media(max-width:500px){.deck-grid{grid-template-columns:repeat(2,1fr)}.rating-buttons{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setup-screen" class="screen active">
+  <div class="setup-box">
+    <h1>의학 플래시카드</h1>
+    <p class="setup-sub">FSRS + AI 채점 · Firebase 동기화</p>
+    <div class="fg">
+      <label class="lbl">Google Gemini API Key</label>
+      <input type="password" id="setup-key" class="inp" placeholder="AIza...">
+    </div>
+    <button id="btn-setup" class="btn btn-p btn-w">시작하기</button>
+    <div class="note">
+      <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> → Get API Key → Create API Key<br>
+      구글 계정만 있으면 무료. 카드 등록 불필요.
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen" class="screen">
+  <div class="topbar">
+    <div class="topbar-title"><span class="sync-dot" id="sync-dot"></span>의학 플래시카드</div>
+    <div class="topbar-actions"><button id="btn-settings" class="btn btn-g">설정</button></div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item"><span class="stat-num" id="st-total">0</span><span class="stat-label">전체</span></div>
+    <div class="stat-item"><span class="stat-num" id="st-due">0</span><span class="stat-label">오늘</span></div>
+    <div class="stat-item"><span class="stat-num" id="st-new">0</span><span class="stat-label">신규</span></div>
+    <div class="stat-item"><span class="stat-num" id="st-decks">0</span><span class="stat-label">덱</span></div>
+  </div>
+  <div class="main-content">
+    <div class="tabs">
+      <div class="tab active" data-tab="decks">덱</div>
+      <div class="tab" data-tab="import">가져오기</div>
+      <div class="tab" data-tab="cards">카드</div>
+    </div>
+    <div id="tab-decks" class="tab-content active">
+      <div id="deck-grid" class="deck-grid"></div>
+    </div>
+    <div id="tab-import" class="tab-content">
+      <div class="import-panel">
+        <h3>노트 가져오기</h3>
+        <div class="itabs">
+          <div class="itab active" data-itab="html">HTML 노트</div>
+          <div class="itab" data-itab="csv">CSV</div>
+          <div class="itab" data-itab="text">텍스트</div>
+        </div>
+        <div id="imp-html">
+          <div class="file-drop" id="drop-zone">
+            <input type="file" id="file-inp" accept=".html,.htm">
+            <div id="drop-label">📄 HTML 파일 드래그 또는 클릭</div>
+            <div class="drop-sub">Shine 에디터 등 지원</div>
+          </div>
+          <textarea class="ta" id="html-area" placeholder="또는 HTML 내용 붙여넣기..."></textarea>
+        </div>
+        <div id="imp-csv" style="display:none"><textarea class="ta" id="csv-area" placeholder="앞면,뒷면&#10;질문1,답변1"></textarea></div>
+        <div id="imp-text" style="display:none"><textarea class="ta" id="text-area" placeholder="자유 형식 노트 붙여넣기..."></textarea></div>
+        <div class="processing" id="proc-ind"><div class="spinner"></div><span>AI가 카드 생성 중...</span></div>
+        <div class="import-footer">
+          <input type="text" class="dn-inp" id="deck-name-inp" placeholder="덱 이름">
+          <button id="btn-import" class="btn btn-p">카드 생성</button>
+        </div>
+      </div>
+    </div>
+    <div id="tab-cards" class="tab-content">
+      <div class="search-bar"><input type="text" id="card-search" placeholder="카드 검색..."></div>
+      <div id="card-list" class="card-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- STUDY -->
+<div id="study-screen" class="screen">
+  <div class="study-header">
+    <button id="btn-exit-study" class="btn btn-g" style="padding:.4rem .75rem;font-size:.76rem">← 나가기</button>
+    <div class="study-title" id="study-deck-nm"></div>
+    <div class="progress-text" id="study-prog">0/0</div>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="study-body">
+    <div class="card-box">
+      <div class="card-metabar">
+        <span class="card-ch" id="s-chapter"></span>
+        <span class="card-st" id="s-state"></span>
+      </div>
+      <div class="card-q" id="s-question"></div>
+      <div class="ans-wrap">
+        <textarea class="ans-ta" id="s-answer" placeholder="여기에 답을 작성하세요..."></textarea>
+        <div class="submit-row">
+          <span class="hint">Ctrl+Enter</span>
+          <button id="btn-submit" class="btn btn-p">채점하기</button>
+        </div>
+      </div>
+    </div>
+    <div class="ai-load" id="ai-load"><div class="spinner"></div>AI 채점 중...</div>
+    <div class="fb-box" id="fb-box">
+      <div class="fb-header"><span>채점 결과</span><span class="score-badge" id="fb-score"></span></div>
+      <div class="fb-body" id="fb-body"></div>
+    </div>
+    <div class="rating-wrap" id="rating-wrap">
+      <div class="rating-label">다음 복습 간격</div>
+      <div class="rating-buttons">
+        <button class="rating-btn r-again" data-rate="1"><span class="rn">Again</span><span class="ri" id="ri-1"></span></button>
+        <button class="rating-btn r-hard" data-rate="2"><span class="rn">Hard</span><span class="ri" id="ri-2"></span></button>
+        <button class="rating-btn r-good" data-rate="3"><span class="rn">Good</span><span class="ri" id="ri-3"></span></button>
+        <button class="rating-btn r-easy" data-rate="4"><span class="rn">Easy</span><span class="ri" id="ri-4"></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETE -->
+<div id="complete-screen" class="screen">
+  <div class="complete-box" style="margin:auto">
+    <h2>학습 완료 🎉</h2>
+    <p>오늘의 복습을 마쳤습니다</p>
+    <div class="c-stats">
+      <div class="cstat"><span class="n" id="c-total">0</span><span class="l">총 카드</span></div>
+      <div class="cstat"><span class="n" id="c-good">0</span><span class="l">정답</span></div>
+      <div class="cstat"><span class="n" id="c-again">0</span><span class="l">재학습</span></div>
+    </div>
+    <button id="btn-exit-complete" class="btn btn-p btn-w">돌아가기</button>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="api-modal">
+  <div class="modal-box">
+    <h3>설정</h3>
+    <p>Google Gemini API 키 변경<br><a href="https://aistudio.google.com" target="_blank" style="color:var(--accent2);font-size:.78rem">aistudio.google.com</a>에서 무료 발급</p>
+    <div class="fg">
+      <label class="lbl">Gemini API Key</label>
+      <input type="password" id="modal-key" class="inp" placeholder="AIza...">
+    </div>
+    <div class="modal-actions">
+      <button id="btn-modal-cancel" class="btn btn-s" style="flex:1">취소</button>
+      <button id="btn-modal-save" class="btn btn-p" style="flex:1">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDiD9uHQ7eYgrsEqNx1o0-9nJiytg_Am_U",
+  authDomain: "sonsa-c7114.firebaseapp.com",
+  projectId: "sonsa-c7114",
+  storageBucket: "sonsa-c7114.firebasestorage.app",
+  messagingSenderId: "810972633670",
+  appId: "1:810972633670:web:3f1eb95bd365b3bd0c8847"
+});
+const db = firebase.firestore();
+
+// ── FSRS ──
+const FSRS = {
+  w:[0.4072,1.1829,3.1262,15.4722,7.2102,0.5316,1.0651,0.06419,1.616,0.1544,1.0,1.9395,0.11,0.29605,2.2698,0.2975,2.9898,0.51],
+  DECAY:-0.5, R:0.9,
+  get F(){return Math.pow(0.9,1/this.DECAY)-1},
+  iS(r){return Math.max(this.w[r-1],0.1)},
+  iD(r){return Math.min(Math.max(this.w[4]-Math.exp(this.w[5]*(r-1))+1,1),10)},
+  iv(s){return Math.max(1,Math.round(s/this.F*(Math.pow(this.R,1/this.DECAY)-1)))},
+  curve(t,s){return Math.pow(1+this.F*t/s,this.DECAY)},
+  nD(d,r){return Math.min(Math.max(d-this.w[6]*(r-3)*((10-d)/9),1),10)},
+  sShort(s,r){return s*Math.exp(this.w[17]*(r-3+this.w[17]))},
+  sRecall(d,s,r,ret){const i=r===2?15:r===4?16:1;return s*(1+Math.exp(this.w[8])*(11-d)*Math.pow(s,-this.w[9])*(Math.exp((1-ret)*this.w[10])-1)*this.w[i])},
+  sForget(d,s,ret){return this.w[11]*Math.pow(d,-this.w[12])*(Math.pow(s+1,this.w[13])-1)*Math.exp((1-ret)*this.w[14])},
+  schedule(c,r){
+    const now=Date.now(),days=c.lastReview?(now-c.lastReview)/86400000:0;
+    if(!c.stability){c.stability=this.iS(r);c.difficulty=this.iD(r);c.state=r===1?'learning':'review'}
+    else{
+      const ret=this.curve(days,c.stability);
+      c.difficulty=this.nD(c.difficulty,r);
+      if(c.state==='review'){c.stability=r===1?this.sForget(c.difficulty,c.stability,ret):this.sRecall(c.difficulty,c.stability,r,ret);if(r===1)c.state='relearning'}
+      else{c.stability=this.sShort(c.stability,r);if(r>=3)c.state='review'}
+    }
+    c.stability=Math.max(c.stability,0.1);
+    c.interval=r===1?0:this.iv(c.stability);
+    c.due=r===1?now:now+c.interval*86400000;
+    c.lastReview=now;c.reps=(c.reps||0)+1;c.lapses=(c.lapses||0)+(r===1?1:0);
+    return c;
+  },
+  preview(c){return[1,2,3,4].map(r=>{const x=JSON.parse(JSON.stringify(c));this.schedule(x,r);return x.interval})},
+  fmt(d){if(!d||d===0)return'지금';if(d<1)return'10분';if(d===1)return'1일';if(d<30)return Math.round(d)+'일';if(d<365)return Math.round(d/30)+'개월';return Math.round(d/365)+'년'}
+};
+
+// ── STATE ──
+let S={apiKey:'',cards:[],decks:{}};
+
+// ── GEMINI ──
+async function callGemini(prompt){
+  const res=await fetch(
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key='+S.apiKey,
+    {method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:0.3,maxOutputTokens:4000}})}
+  );
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message);
+  return data.candidates[0].content.parts[0].text;
+}
+
+// ── FIREBASE ──
+function setSyncDot(s){document.getElementById('sync-dot').className='sync-dot '+s}
+
+async function loadDB(){
+  setSyncDot('syncing');
+  try{
+    const cfg=await db.collection('config').doc('main').get();
+    if(cfg.exists) S.apiKey=cfg.data().apiKey||'';
+    const ds=await db.collection('decks').get();
+    S.decks={};ds.forEach(d=>{S.decks[d.id]=d.data()});
+    const cs=await db.collection('cards').get();
+    S.cards=[];cs.forEach(d=>{S.cards.push({id:d.id,...d.data()})});
+    setSyncDot('ok');return true;
+  }catch(e){setSyncDot('err');console.error(e);return false}
+}
+async function saveConfig(){await db.collection('config').doc('main').set({apiKey:S.apiKey})}
+async function saveDeck(id){await db.collection('decks').doc(id).set(S.decks[id])}
+async function saveCards(cards){
+  setSyncDot('syncing');
+  try{
+    const batch=db.batch();
+    cards.forEach(c=>batch.set(db.collection('cards').doc(c.id),c));
+    await batch.commit();setSyncDot('ok');
+  }catch(e){setSyncDot('err')}
+}
+async function saveCard(c){
+  setSyncDot('syncing');
+  try{await db.collection('cards').doc(c.id).set(c);setSyncDot('ok')}
+  catch(e){setSyncDot('err')}
+}
+
+// ── UI HELPERS ──
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+// ── RENDER ──
+function renderAll(){
+  const now=Date.now();
+  document.getElementById('st-total').textContent=S.cards.length;
+  document.getElementById('st-due').textContent=S.cards.filter(c=>c.due&&c.due<=now&&c.stability).length;
+  document.getElementById('st-new').textContent=S.cards.filter(c=>!c.stability).length;
+  document.getElementById('st-decks').textContent=Object.keys(S.decks).length;
+  const ids=Object.keys(S.decks);
+  const grid=document.getElementById('deck-grid');
+  if(!ids.length){grid.innerHTML='<div class="empty-state">아직 덱이 없습니다.<br>가져오기 탭에서 노트를 추가하세요.</div>';return}
+  grid.innerHTML=ids.map(id=>{
+    const deck=S.decks[id];
+    const cards=S.cards.filter(c=>c.deckId===id);
+    const due=cards.filter(c=>c.due&&c.due<=now&&c.stability).length;
+    const nw=cards.filter(c=>!c.stability).length;
+    const study=due+nw;
+    return`<div class="deck-card" data-deck="${id}"><h3>${deck.name}</h3><div class="deck-meta">${cards.length}장</div><div class="deck-due ${study===0?'zero':''}">${study===0?'완료':study+'장 복습'}</div></div>`;
+  }).join('');
+  document.querySelectorAll('.deck-card').forEach(el=>{
+    el.addEventListener('click',()=>startStudy(el.dataset.deck));
+  });
+}
+
+function renderCardList(){
+  const q=document.getElementById('card-search').value.toLowerCase();
+  const cards=S.cards.filter(c=>!q||c.front.toLowerCase().includes(q));
+  const list=document.getElementById('card-list');
+  if(!cards.length){list.innerHTML='<div class="empty-state">카드가 없습니다.</div>';return}
+  list.innerHTML=cards.slice(0,100).map(c=>{
+    const deck=S.decks[c.deckId];
+    const due=c.due?new Date(c.due).toLocaleDateString('ko-KR'):'신규';
+    return`<div class="card-item"><div class="card-item-q">${c.front}</div><div class="card-item-meta"><span>${deck?deck.name:''}</span><span>${due}</span><span>${c.stability?FSRS.fmt(c.interval):'NEW'}</span></div></div>`;
+  }).join('');
+}
+
+// ── IMPORT ──
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+
+async function importCSV(csv,deckName){
+  const lines=csv.split('\n').filter(l=>l.trim());
+  const cards=[];
+  const start=lines[0].toLowerCase().startsWith('앞면')||lines[0].toLowerCase().startsWith('front')?1:0;
+  for(let i=start;i<lines.length;i++){
+    const m=lines[i].match(/^"([^"]*(?:""[^"]*)*)"\s*,\s*"?(.*?)"?$/)||lines[i].match(/^([^,]+),(.+)$/s);
+    if(m){const front=m[1].replace(/""/g,'"').trim();const back=m[2].replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();if(front&&back)cards.push({front,back})}
+  }
+  if(!cards.length){toast('파싱된 카드가 없습니다');return}
+  await addCardsToDeck(cards,deckName);toast(cards.length+'장 추가됨');switchTab('decks');
+}
+
+async function importWithAI(content,deckName){
+  document.getElementById('proc-ind').classList.add('show');
+  const parser=new DOMParser();const d=parser.parseFromString(content,'text/html');
+  const text=(d.body?d.body.innerText:content).slice(0,8000);
+  const prompt=`다음은 의학 공부 노트입니다. 시험에 나올 플래시카드를 만들어주세요.\n\n${text}\n\n규칙:\n1. "~을 쓰시오", "~을 설명하시오", "~를 비교하시오" 형태 서술형 질문\n2. 15~30장 생성\n3. JSON 배열만 반환 (마크다운 코드블록 없이):\n[{"front":"질문","back":"모범답안"},...]`;
+  try{
+    const txt=await callGemini(prompt);
+    const match=txt.match(/\[[\s\S]*\]/);
+    if(!match)throw new Error('JSON 파싱 실패');
+    const cards=JSON.parse(match[0]);
+    await addCardsToDeck(cards,deckName);toast(cards.length+'장 추가됨');switchTab('decks');
+  }catch(e){toast('오류: '+e.message)}
+  finally{document.getElementById('proc-ind').classList.remove('show')}
+}
+
+async function addCardsToDeck(cards,deckName){
+  let deckId=Object.keys(S.decks).find(id=>S.decks[id].name===deckName);
+  if(!deckId){deckId=genId();S.decks[deckId]={name:deckName,created:Date.now()};await saveDeck(deckId)}
+  const newCards=cards.map(c=>({id:genId(),deckId,front:c.front,back:c.back,stability:null,difficulty:null,interval:0,due:null,lastReview:null,reps:0,lapses:0,state:'new'}));
+  S.cards.push(...newCards);await saveCards(newCards);renderAll();
+}
+
+// ── STUDY ──
+let session={deckId:null,queue:[],idx:0,stats:{good:0,again:0}};
+
+function startStudy(deckId){
+  const now=Date.now();
+  const due=S.cards.filter(c=>c.deckId===deckId&&c.due&&c.due<=now&&c.stability);
+  const nw=S.cards.filter(c=>c.deckId===deckId&&!c.stability).slice(0,20);
+  const queue=[...due,...nw];
+  if(!queue.length){toast('오늘 복습할 카드가 없습니다');return}
+  session={deckId,queue,idx:0,stats:{good:0,again:0}};
+  document.getElementById('study-deck-nm').textContent=S.decks[deckId].name;
+  showScreen('study-screen');showStudyCard();
+}
+
+function showStudyCard(){
+  if(session.idx>=session.queue.length){finishStudy();return}
+  const card=session.queue[session.idx];
+  const total=session.queue.length;
+  document.getElementById('study-prog').textContent=session.idx+'/'+total;
+  document.getElementById('prog-fill').style.width=(session.idx/total*100)+'%';
+  const ch=card.front.match(/^\[([^\]]+)\]/);
+  document.getElementById('s-chapter').textContent=ch?ch[1]:'';
+  document.getElementById('s-state').textContent=card.stability?'간격 '+FSRS.fmt(card.interval):'NEW';
+  document.getElementById('s-question').textContent=card.front.replace(/^\[[^\]]+\]\s*/,'');
+  document.getElementById('s-answer').value='';
+  document.getElementById('s-answer').disabled=false;
+  document.getElementById('btn-submit').style.display='flex';
+  document.getElementById('fb-box').classList.remove('show');
+  document.getElementById('ai-load').classList.remove('show');
+  document.getElementById('rating-wrap').classList.remove('show');
+  document.getElementById('s-answer').focus();
+}
+
+async function doSubmit(){
+  const ans=document.getElementById('s-answer').value.trim();
+  if(!ans){toast('답을 입력하세요');return}
+  if(!S.apiKey){document.getElementById('api-modal').classList.add('show');return}
+  document.getElementById('btn-submit').style.display='none';
+  document.getElementById('s-answer').disabled=true;
+  document.getElementById('ai-load').classList.add('show');
+  const card=session.queue[session.idx];
+  const q=card.front.replace(/^\[[^\]]+\]\s*/,'');
+  const model=card.back.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  const prompt='의학 시험 채점자입니다.\n\n문제: '+q+'\n모범답안: '+model+'\n학생 답변: '+ans+'\n\nJSON만 반환 (마크다운 없이):\n{"score":0-100,"correct":["맞은 내용"],"missing":["빠진 내용"],"wrong":["틀린 내용"],"summary":"한 줄 총평"}';
+  try{
+    const txt=await callGemini(prompt);
+    const match=txt.match(/\{[\s\S]*\}/);
+    if(!match)throw new Error('파싱 실패');
+    showFeedback(JSON.parse(match[0]),model);
+  }catch(e){
+    toast('채점 오류: '+e.message);
+    document.getElementById('btn-submit').style.display='flex';
+    document.getElementById('s-answer').disabled=false;
+  }finally{document.getElementById('ai-load').classList.remove('show')}
+}
+
+function showFeedback(r,modelAns){
+  const score=r.score||0;
+  const badge=document.getElementById('fb-score');
+  badge.textContent=score+'점';
+  badge.className='score-badge '+(score>=80?'s-hi':score>=50?'s-mid':'s-lo');
+  let html='';
+  if(r.summary)html+='<p style="margin-bottom:.8rem;font-weight:500">'+r.summary+'</p>';
+  if(r.correct&&r.correct.length)html+='<h4>✓ 맞은 내용</h4><ul>'+r.correct.map(c=>'<li class="c-ok">✓ '+c+'</li>').join('')+'</ul>';
+  if(r.missing&&r.missing.length)html+='<h4>△ 빠진 내용</h4><ul>'+r.missing.map(c=>'<li class="c-miss">△ '+c+'</li>').join('')+'</ul>';
+  if(r.wrong&&r.wrong.length)html+='<h4>✗ 틀린 내용</h4><ul>'+r.wrong.map(c=>'<li class="c-wrong">✗ '+c+'</li>').join('')+'</ul>';
+  html+='<div class="model-box"><h4>모범답안</h4><p>'+modelAns+'</p></div>';
+  document.getElementById('fb-body').innerHTML=html;
+  document.getElementById('fb-box').classList.add('show');
+  const ivs=FSRS.preview(session.queue[session.idx]);
+  [1,2,3,4].forEach(i=>{document.getElementById('ri-'+i).textContent=FSRS.fmt(ivs[i-1])});
+  document.getElementById('rating-wrap').classList.add('show');
+  document.getElementById('fb-box').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function doRate(rating){
+  const card=session.queue[session.idx];
+  const inDB=S.cards.find(c=>c.id===card.id);
+  if(inDB){FSRS.schedule(inDB,rating);await saveCard(inDB)}
+  if(rating===1){session.stats.again++;session.queue.push({...card})}
+  else session.stats.good++;
+  session.idx++;showStudyCard();
+}
+
+function finishStudy(){
+  document.getElementById('c-total').textContent=session.stats.good+session.stats.again;
+  document.getElementById('c-good').textContent=session.stats.good;
+  document.getElementById('c-again').textContent=session.stats.again;
+  showScreen('complete-screen');renderAll();
+}
+
+// ── TAB SWITCHING ──
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+name));
+  if(name==='cards')renderCardList();
+}
+
+// ── EVENT LISTENERS ──
+document.getElementById('btn-setup').addEventListener('click',async()=>{
+  const key=document.getElementById('setup-key').value.trim();
+  if(!key.startsWith('AIza')){toast('올바른 Gemini API 키를 입력하세요 (AIza로 시작)');return}
+  S.apiKey=key;await saveConfig();showScreen('main-screen');renderAll();
+});
+document.getElementById('setup-key').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-setup').click()});
+
+document.getElementById('btn-settings').addEventListener('click',()=>{
+  document.getElementById('modal-key').value=S.apiKey||'';
+  document.getElementById('api-modal').classList.add('show');
+});
+document.getElementById('btn-modal-cancel').addEventListener('click',()=>document.getElementById('api-modal').classList.remove('show'));
+document.getElementById('btn-modal-save').addEventListener('click',async()=>{
+  const key=document.getElementById('modal-key').value.trim();
+  if(!key.startsWith('AIza')){toast('올바른 API 키를 입력하세요');return}
+  S.apiKey=key;await saveConfig();document.getElementById('api-modal').classList.remove('show');toast('저장됨');
+});
+
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.tab)));
+
+document.querySelectorAll('.itab').forEach(t=>t.addEventListener('click',()=>{
+  const name=t.dataset.itab;
+  document.querySelectorAll('.itab').forEach(x=>x.classList.toggle('active',x.dataset.itab===name));
+  ['html','csv','text'].forEach(n=>{document.getElementById('imp-'+n).style.display=n===name?'block':'none'});
+}));
+
+const dropZone=document.getElementById('drop-zone');
+dropZone.addEventListener('click',()=>document.getElementById('file-inp').click());
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('dragover')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop',e=>{
+  e.preventDefault();dropZone.classList.remove('dragover');
+  const f=e.dataTransfer.files[0];
+  if(f){const r=new FileReader();r.onload=ev=>{document.getElementById('html-area').value=ev.target.result;document.getElementById('drop-label').textContent='✓ '+f.name;toast('파일 로드 완료')};r.readAsText(f,'UTF-8')}
+});
+document.getElementById('file-inp').addEventListener('change',e=>{
+  const f=e.target.files[0];
+  if(f){const r=new FileReader();r.onload=ev=>{document.getElementById('html-area').value=ev.target.result;document.getElementById('drop-label').textContent='✓ '+f.name;toast('파일 로드 완료')};r.readAsText(f,'UTF-8')}
+});
+
+document.getElementById('btn-import').addEventListener('click',async()=>{
+  const deckName=document.getElementById('deck-name-inp').value.trim();
+  if(!deckName){toast('덱 이름을 입력하세요');return}
+  if(!S.apiKey){document.getElementById('api-modal').classList.add('show');return}
+  const activeItab=document.querySelector('.itab.active').dataset.itab;
+  if(activeItab==='csv'){const csv=document.getElementById('csv-area').value.trim();if(!csv){toast('CSV를 입력하세요');return}await importCSV(csv,deckName);return}
+  const content=activeItab==='html'?document.getElementById('html-area').value.trim():document.getElementById('text-area').value.trim();
+  if(!content){toast('내용을 입력하세요');return}
+  await importWithAI(content,deckName);
+});
+
+document.getElementById('card-search').addEventListener('input',renderCardList);
+
+document.getElementById('btn-submit').addEventListener('click',doSubmit);
+document.getElementById('s-answer').addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter')doSubmit()});
+
+document.querySelectorAll('.rating-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>doRate(parseInt(btn.dataset.rate)));
+});
+
+document.getElementById('btn-exit-study').addEventListener('click',()=>{showScreen('main-screen');renderAll()});
+document.getElementById('btn-exit-complete').addEventListener('click',()=>{showScreen('main-screen');renderAll()});
+
+// ── INIT ──
+(async()=>{
+  const ok=await loadDB();
+  if(ok&&S.apiKey){showScreen('main-screen');renderAll()}
+  else if(ok){showScreen('setup-screen')}
+  else toast('Firebase 연결 실패. 네트워크를 확인하세요.');
+})();
+</script>
+</body>
+</html>
