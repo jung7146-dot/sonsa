@@ -436,9 +436,10 @@ async function importWithAI(content,deckName){
   const text=(d.body?d.body.innerText:content).slice(0,8000);
   const prompt=`다음은 의학 공부 노트입니다. 시험에 나올 플래시카드를 만들어주세요.\n\n${text}\n\n규칙:\n1. "~을 쓰시오", "~을 설명하시오", "~를 비교하시오" 형태 서술형 질문\n2. 15~30장 생성\n3. JSON 배열만 반환 (마크다운 코드블록 없이):\n[{"front":"질문","back":"모범답안"},...]`;
   try{
-    const txt=await callGemini(prompt);
+    let txt=await callGemini(prompt);
+    txt=txt.replace(/```json/gi,'').replace(/```/g,'').trim();
     const match=txt.match(/\[[\s\S]*\]/);
-    if(!match)throw new Error('JSON 파싱 실패');
+    if(!match)throw new Error('JSON 파싱 실패: '+txt.slice(0,100));
     const cards=JSON.parse(match[0]);
     await addCardsToDeck(cards,deckName);toast(cards.length+'장 추가됨');switchTab('decks');
   }catch(e){toast('오류: '+e.message)}
