@@ -387,11 +387,9 @@ function inl(s,isQ){
 const DB_COL='blankcards_progress';
 let db=null;
 
-let fbReady=false;
 function initFirebase(){
   if(db)return;
-  if(typeof firebase==='undefined') throw new Error('firebase not loaded');
-  if(!fbReady){
+  if(!firebase.apps.length){
     firebase.initializeApp({
       apiKey:"AIzaSyDiD9uHQ7eYgrsEqNx1o0-9nJiytg_Am_U",
       authDomain:"sonsa-c7114.firebaseapp.com",
@@ -400,34 +398,17 @@ function initFirebase(){
       messagingSenderId:"810972633670",
       appId:"1:810972633670:web:3f1eb95bd365b3bd0c8847"
     });
-    fbReady=true;
   }
   db=firebase.firestore();
 }
 
-function waitFirebase(ms=5000){
-  return new Promise((resolve,reject)=>{
-    const start=Date.now();
-    function check(){
-      if(typeof firebase!=='undefined'&&typeof firebase.firestore!=='undefined'){
-        resolve();
-      }else if(Date.now()-start>ms){
-        reject(new Error('Firebase load timeout'));
-      }else{
-        setTimeout(check,50);
-      }
-    }
-    check();
-  });
-}
-
 async function loadProg(){
   try{
-    await waitFirebase();
     initFirebase();
     const snap=await db.collection(DB_COL).get();
     const d={};
     snap.forEach(doc=>{ d[doc.id]=doc.data(); });
+    console.log('✓ Firebase 로드 완료', Object.keys(d).length+'개');
     return d;
   }catch(e){
     console.warn('Firebase 로드 실패, localStorage 사용',e);
@@ -439,13 +420,13 @@ async function saveProg(){
   const d={};
   cards.forEach(c=>{d[c.id]={stability:c.stability,difficulty:c.difficulty,interval:c.interval,due:c.due,lastReview:c.lastReview,reps:c.reps,lapses:c.lapses,state:c.state};});
   try{
-    await waitFirebase();
     initFirebase();
     const batch=db.batch();
     Object.entries(d).forEach(([id,data])=>{
       batch.set(db.collection(DB_COL).doc(id),data);
     });
     await batch.commit();
+    console.log('✓ Firebase 저장 완료', Object.keys(d).length+'개');
   }catch(e){
     console.warn('Firebase 저장 실패, localStorage 사용',e);
     localStorage.setItem('blankcards_v3',JSON.stringify(d));
@@ -618,7 +599,6 @@ document.getElementById('btn-next').addEventListener('click',()=>{
 document.getElementById('btn-reset').addEventListener('click',async()=>{
   if(!confirm('복습 기록을 초기화할까요?'))return;
   try{
-    await waitFirebase();
     initFirebase();
     const snap=await db.collection(DB_COL).get();
     const batch=db.batch();
