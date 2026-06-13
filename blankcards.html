@@ -571,8 +571,18 @@ function doRate(r){
   if(orig){FSRS.schedule(orig,r);saveProg();}
   if(r===1){
     sess.stats.again++;
-    const ins=Math.min(sess.idx+Math.floor(Math.random()*3)+2,sess.queue.length);
-    sess.queue.splice(ins,0,{...c});
+    // 모름 → 입력창 초기화하고 바로 다시 풀기
+    inputs.forEach(i=>{i.value='';i.disabled=false;i.classList.remove('correct','wrong');});
+    document.getElementById('ans-box').classList.remove('show');
+    document.getElementById('score-section').classList.remove('show');
+    document.getElementById('action-row').style.display='flex';
+    document.getElementById('rating-wrap').classList.remove('show');
+    document.getElementById('next-wrap').style.display='none';
+    // 상태 표시 업데이트
+    document.getElementById('q-state').textContent='간격 '+FSRS.fmt(orig?orig.interval:0);
+    // 첫 빈칸 포커스
+    setTimeout(()=>{const f=document.querySelector('#q-body .blank-input');if(f)f.focus();},80);
+    return;
   }else{sess.stats.good++;}
   sess.idx++;showCard();
 }
