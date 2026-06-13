@@ -246,7 +246,9 @@ const FSRS={
       else{c.stability=this.sShort(c.stability,mr);if(mr>=3)c.state='review';}
     }
     c.stability=Math.max(c.stability,0.1);
-    c.interval=mr===1?0:Math.min(3,this.iv(c.stability));
+    // 등급별 간격: 모름=지금, 애매=최소1일/최대3일, 알았음=최소2일/최대3일
+    const minIv=mr===4?2:1;
+    c.interval=mr===1?0:Math.min(3,Math.max(minIv,this.iv(c.stability)));
     c.due=mr===1?now:now+c.interval*86400000;
     c.lastReview=now;c.reps=(c.reps||0)+1;c.lapses=(c.lapses||0)+(mr===1?1:0);
     return c;
