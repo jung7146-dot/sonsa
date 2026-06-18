@@ -129,6 +129,7 @@ body{font-family:'Noto Serif KR',serif,sans-serif;background:var(--bg);color:var
     <span class="topbar-title">📖 의학이론 빈칸채우기</span>
     <div style="display:flex;gap:.35rem">
       <button id="btn-reset" class="btn btn-s btn-sm">↺ 초기화</button>
+      <button id="btn-new" class="btn btn-s btn-sm">🆕 신규학습</button>
       <button id="btn-start" class="btn btn-p btn-sm">복습 시작</button>
     </div>
   </div>
@@ -159,6 +160,35 @@ body{font-family:'Noto Serif KR',serif,sans-serif;background:var(--bg);color:var
     <div style="display:flex;gap:.4rem">
       <button id="modal-cancel" class="btn btn-s" style="flex:1">취소</button>
       <button id="modal-confirm" class="btn btn-p" style="flex:1">시작</button>
+    </div>
+  </div>
+</div>
+
+<!-- 신규학습 모달 -->
+<div class="modal-overlay" id="modal-new">
+  <div class="modal-box">
+    <h3>신규 학습</h3>
+    <p class="modal-desc" id="new-modal-desc"></p>
+    <div class="mode-btns">
+      <div class="mode-btn selected" id="new-mode-order" onclick="selectNewMode('order')">
+        <span class="mi">📋</span><span class="ml">순서대로</span><span class="ms">1번부터 차례로</span>
+      </div>
+      <div class="mode-btn" id="new-mode-random" onclick="selectNewMode('random')">
+        <span class="mi">🔀</span><span class="ml">랜덤</span><span class="ms">무작위 순서</span>
+      </div>
+    </div>
+    <div style="margin-bottom:.8rem">
+      <label class="modal-lbl" style="font-size:.7rem;color:var(--text2);font-weight:600;display:block;margin-bottom:.35rem">한 번에 학습할 문제 수</label>
+      <div style="display:flex;gap:.4rem">
+        <button class="new-cnt-btn btn btn-s btn-sm" data-n="10" style="flex:1">10개</button>
+        <button class="new-cnt-btn btn btn-s btn-sm" data-n="20" style="flex:1;background:var(--accent);color:#fff">20개</button>
+        <button class="new-cnt-btn btn btn-s btn-sm" data-n="30" style="flex:1">30개</button>
+        <button class="new-cnt-btn btn btn-s btn-sm" data-n="999" style="flex:1">전체</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:.4rem">
+      <button id="new-modal-cancel" class="btn btn-s" style="flex:1">취소</button>
+      <button id="new-modal-confirm" class="btn btn-p" style="flex:1">시작</button>
     </div>
   </div>
 </div>
@@ -487,6 +517,43 @@ function selectMode(m){
   document.getElementById('mode-random').classList.toggle('selected',m==='random');
 }
 
+let newMode='order';
+let newCount=20;
+function selectNewMode(m){
+  newMode=m;
+  document.getElementById('new-mode-order').classList.toggle('selected',m==='order');
+  document.getElementById('new-mode-random').classList.toggle('selected',m==='random');
+}
+
+function openNewModal(){
+  const nw=cards.filter(c=>!c.stability);
+  if(!nw.length){toast('신규 문제가 없습니다. 모든 문제를 학습했어요!');return;}
+  document.getElementById('new-modal-desc').textContent=`미학습 문제: ${nw.length}개`;
+  document.getElementById('modal-new').classList.add('show');
+  document.getElementById('new-modal-confirm').onclick=()=>{
+    let q=[...nw];
+    if(newMode==='random')shuffle(q);
+    q=q.slice(0,newCount);
+    startSession(q);
+    document.getElementById('modal-new').classList.remove('show');
+  };
+}
+
+// 문제 수 버튼
+function setupCntBtns(){
+  document.querySelectorAll('.new-cnt-btn').forEach(b=>{
+    b.addEventListener('click',()=>{
+      newCount=parseInt(b.dataset.n);
+      document.querySelectorAll('.new-cnt-btn').forEach(x=>{
+        x.style.background='';x.style.color='';
+      });
+      b.style.background='var(--accent)';b.style.color='#fff';
+    });
+  });
+}
+
+
+
 let sess={queue:[],idx:0,stats:{total:0,good:0,again:0,scoreSum:0}};
 
 function openStartModal(){
@@ -599,6 +666,9 @@ function finishStudy(){
 }
 
 document.getElementById('btn-start').addEventListener('click',openStartModal);
+document.getElementById('btn-new').addEventListener('click',openNewModal);
+document.getElementById('new-modal-cancel').addEventListener('click',()=>document.getElementById('modal-new').classList.remove('show'));
+setupCntBtns();
 document.getElementById('modal-cancel').addEventListener('click',()=>document.getElementById('modal-start').classList.remove('show'));
 document.getElementById('btn-exit').addEventListener('click',()=>{showScreen('main');renderMain();});
 document.getElementById('btn-done').addEventListener('click',()=>{showScreen('main');renderMain();});
